@@ -1,6 +1,4 @@
-// components/OrderFormClient.js
-// Client-side order form with submission
-
+// src/components/OrderFormClient.js
 "use client";
 
 import { useState } from "react";
@@ -13,88 +11,117 @@ export default function OrderFormClient({ product }) {
     customerName: "",
     customerPhone: "",
     customerAddress: "",
+    selectedSize: "",
   });
   const [errors, setErrors] = useState({});
+
+  const sizes =
+    Array.isArray(product.sizes) && product.sizes.length ? product.sizes : [];
+  const hasSizes = sizes.length > 0;
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
-    // Clear error when user starts typing
-    if (errors[name]) {
-      setErrors((prev) => ({ ...prev, [name]: "" }));
-    }
+    if (errors[name]) setErrors((prev) => ({ ...prev, [name]: "" }));
   };
 
-  const validateForm = () => {
-    const newErrors = {};
-
-    if (!formData.customerName.trim()) {
-      newErrors.customerName = "Name is required";
-    }
-
+  const validate = () => {
+    const errs = {};
+    if (!formData.customerName.trim()) errs.customerName = "Name is required";
     if (!formData.customerPhone.trim()) {
-      newErrors.customerPhone = "Phone number is required";
+      errs.customerPhone = "Phone number is required";
     } else if (
       !/^01[3-9]\d{8}$/.test(formData.customerPhone.replace(/\s/g, ""))
     ) {
-      newErrors.customerPhone = "Invalid Bangladesh phone number";
+      errs.customerPhone = "Invalid Bangladesh phone number (e.g. 01712345678)";
     }
-
     if (!formData.customerAddress.trim()) {
-      newErrors.customerAddress = "Address is required";
+      errs.customerAddress = "Address is required";
     } else if (formData.customerAddress.trim().length < 10) {
-      newErrors.customerAddress = "Please provide a complete address";
+      errs.customerAddress = "Please provide a complete address";
     }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    if (hasSizes && !formData.selectedSize) {
+      errs.selectedSize = "Please select a size";
+    }
+    setErrors(errs);
+    return Object.keys(errs).length === 0;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    if (!validateForm()) return;
-
+    if (!validate()) return;
     setLoading(true);
-
     try {
       const response = await fetch("/api/orders", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           productId: product._id,
           customerName: formData.customerName.trim(),
           customerPhone: formData.customerPhone.trim(),
           customerAddress: formData.customerAddress.trim(),
+          selectedSize: formData.selectedSize || null,
         }),
       });
-
       const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || "Failed to place order");
-      }
-
-      // Redirect to success page
+      if (!response.ok) throw new Error(data.error || "Failed to place order");
       router.push(`/order-success?orderNumber=${data.orderNumber}`);
-    } catch (error) {
-      console.error("Error placing order:", error);
-      alert(error.message || "Failed to place order. Please try again.");
+    } catch (err) {
+      alert(err.message || "Failed to place order. Please try again.");
       setLoading(false);
     }
   };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+      {/* Size selector */}
+      {hasSizes && (
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Select Size <span className="text-red-500">*</span>
+          </label>
+          <div className="flex flex-wrap gap-2">
+            {sizes.map((s) => (
+              <button
+                key={s}
+                type="button"
+                onClick={() => {
+                  setFormData((p) => ({ ...p, selectedSize: s }));
+                  setErrors((p) => ({ ...p, selectedSize: "" }));
+                }}
+                className="transition-all duration-150"
+                style={{
+                  padding: "0.45rem 1rem",
+                  borderRadius: 8,
+                  fontSize: 14,
+                  fontWeight: 600,
+                  cursor: "pointer",
+                  border:
+                    formData.selectedSize === s
+                      ? "2px solid #0b3d91"
+                      : "2px solid #d1d5db",
+                  background: formData.selectedSize === s ? "#0b3d91" : "#fff",
+                  color: formData.selectedSize === s ? "#fff" : "#374151",
+                  transition: "all 0.15s",
+                }}
+              >
+                {s}
+              </button>
+            ))}
+          </div>
+          {errors.selectedSize && (
+            <p className="text-red-500 text-sm mt-1">{errors.selectedSize}</p>
+          )}
+        </div>
+      )}
+
       {/* Name */}
       <div>
         <label
           htmlFor="customerName"
           className="block text-sm font-medium text-gray-700 mb-1"
         >
-          Full Name *
+          Full Name <span className="text-red-500">*</span>
         </label>
         <input
           type="text"
@@ -119,7 +146,7 @@ export default function OrderFormClient({ product }) {
           htmlFor="customerPhone"
           className="block text-sm font-medium text-gray-700 mb-1"
         >
-          Phone Number *
+          Phone Number <span className="text-red-500">*</span>
         </label>
         <input
           type="tel"
@@ -144,7 +171,7 @@ export default function OrderFormClient({ product }) {
           htmlFor="customerAddress"
           className="block text-sm font-medium text-gray-700 mb-1"
         >
-          Delivery Address *
+          Delivery Address <span className="text-red-500">*</span>
         </label>
         <textarea
           id="customerAddress"
@@ -166,7 +193,31 @@ export default function OrderFormClient({ product }) {
         </p>
       </div>
 
-      {/* Submit Button */}
+      {/* Order summary */}
+      <div className="bg-gray-50 rounded-lg p-4 text-sm">
+        <div className="flex justify-between items-center mb-1">
+          <span className="text-gray-600">Product</span>
+          <span className="font-medium text-gray-900 truncate max-w-[180px]">
+            {product.name}
+          </span>
+        </div>
+        {formData.selectedSize && (
+          <div className="flex justify-between items-center mb-1">
+            <span className="text-gray-600">Size</span>
+            <span className="font-bold text-primary">
+              {formData.selectedSize}
+            </span>
+          </div>
+        )}
+        <div className="flex justify-between items-center border-t border-gray-200 pt-2 mt-2">
+          <span className="text-gray-600 font-medium">Total</span>
+          <span className="text-lg font-bold text-primary">
+            ৳{(product.displayPrice || product.price).toLocaleString("en-BD")}
+          </span>
+        </div>
+      </div>
+
+      {/* Submit */}
       <button
         type="submit"
         disabled={loading}

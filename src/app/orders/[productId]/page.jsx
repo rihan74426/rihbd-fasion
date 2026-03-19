@@ -1,24 +1,23 @@
-// app/order/[productId]/page.js
-// Order form for a specific product
-
+// src/app/orders/[productId]/page.jsx
 import { notFound } from "next/navigation";
 import Image from "next/image";
+import Link from "next/link";
 import OrderFormClient from "@/components/OrderFormClient";
-import { formatPrice } from "@/lib/utils";
 import connectDB from "@/lib/mongodb";
 import Product from "@/models/Product";
-import Link from "next/link";
+
+function formatPrice(price) {
+  const num = typeof price === "string" ? parseFloat(price) : price;
+  return `৳${num.toLocaleString("en-BD")}`;
+}
 
 async function getProduct(productId) {
   try {
     await connectDB();
     const product = await Product.findById(productId);
-
     if (!product) return null;
-
     return JSON.parse(JSON.stringify(product));
-  } catch (error) {
-    console.error("Error fetching product:", error);
+  } catch {
     return null;
   }
 }
@@ -27,16 +26,19 @@ export default async function OrderPage({ params }) {
   const { productId } = await params;
   const product = await getProduct(productId);
 
-  if (!product || !product.isActive || product.stock === 0) {
-    notFound();
-  }
+  if (!product || !product.isActive || product.stock === 0) notFound();
 
   const productImage = product.images?.[0] || "/placeholder.jpg";
+  const hasDiscount =
+    product.discountPrice && product.discountPrice < product.price;
+  const displayPrice = hasDiscount ? product.discountPrice : product.price;
+  const sizes =
+    Array.isArray(product.sizes) && product.sizes.length ? product.sizes : [];
 
   return (
     <main className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Back Button */}
+        {/* Back */}
         <Link
           href="/"
           className="inline-flex items-center text-primary hover:text-primary-dark mb-6"
@@ -59,7 +61,7 @@ export default async function OrderPage({ params }) {
 
         <div className="bg-white rounded-lg shadow-md overflow-hidden">
           <div className="grid md:grid-cols-2 gap-8 p-6 md:p-8">
-            {/* Product Info */}
+            {/* Product info */}
             <div>
               <div className="relative aspect-square rounded-lg overflow-hidden bg-gray-100 mb-4">
                 <Image
@@ -75,12 +77,50 @@ export default async function OrderPage({ params }) {
                 {product.name}
               </h1>
 
-              <p className="text-3xl font-bold text-primary mb-4">
-                {formatPrice(product.price)}
-              </p>
+              {/* Price — always show discountPrice if present */}
+              <div className="flex items-center gap-3 mb-4">
+                <p className="text-3xl font-bold text-primary">
+                  {formatPrice(displayPrice)}
+                </p>
+                {hasDiscount && (
+                  <p className="text-lg text-gray-400 line-through">
+                    {formatPrice(product.price)}
+                  </p>
+                )}
+                {hasDiscount && (
+                  <span className="text-sm font-bold text-white bg-amber-500 px-2 py-0.5 rounded-full">
+                    {Math.round(
+                      ((product.price - product.discountPrice) /
+                        product.price) *
+                        100
+                    )}
+                    % OFF
+                  </span>
+                )}
+              </div>
 
               <p className="text-gray-600 mb-4">{product.description}</p>
 
+              {/* Available sizes */}
+              {sizes.length > 0 && (
+                <div className="mb-4">
+                  <p className="text-sm font-semibold text-gray-700 mb-2">
+                    Available Sizes
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {sizes.map((s) => (
+                      <span
+                        key={s}
+                        className="px-3 py-1 text-sm font-semibold border-2 border-primary text-primary rounded-md bg-blue-50"
+                      >
+                        {s}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* COD badge */}
               <div className="bg-green-50 border border-green-200 rounded-lg p-4">
                 <div className="flex items-center text-green-800">
                   <svg
@@ -104,17 +144,23 @@ export default async function OrderPage({ params }) {
               </div>
             </div>
 
-            {/* Order Form */}
+            {/* Order form */}
             <div>
-              <h2 className="text-xl font-bold text-gray-900 mb-4">
+              <h2 className="text-xl font-bold text-gray-900 mb-2">
                 Order Information
               </h2>
               <p className="text-sm text-gray-600 mb-6">
                 Fill in your details below to place your order. We will contact
                 you to confirm.
               </p>
-
-              <OrderFormClient product={product} />
+              {/* Pass product with corrected price and sizes */}
+              <OrderFormClient
+                product={{
+                  ...product,
+                  displayPrice, // the price to charge
+                  sizes,
+                }}
+              />
             </div>
           </div>
         </div>
