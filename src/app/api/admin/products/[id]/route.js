@@ -6,9 +6,6 @@ import { verifyAdmin } from "@/lib/verifyAdmin";
 
 // GET — fetch single product for edit page pre-fill
 export async function GET(request, { params }) {
-  if (!(await verifyAdmin())) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
   try {
     await connectDB();
     const { id } = await params;
