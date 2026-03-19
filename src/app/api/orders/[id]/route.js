@@ -16,9 +16,9 @@ export async function PUT(request, { params }) {
     if (!["PENDING", "DELIVERED", "CANCELLED"].includes(status)) {
       return NextResponse.json({ error: "Invalid status" }, { status: 400 });
     }
-
+    const param = await params;
     const order = await Order.findByIdAndUpdate(
-      params.id,
+      param.id,
       { status },
       { new: true }
     );

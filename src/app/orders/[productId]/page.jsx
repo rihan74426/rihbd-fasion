@@ -24,7 +24,8 @@ async function getProduct(productId) {
 }
 
 export default async function OrderPage({ params }) {
-  const product = await getProduct(params.productId);
+  const { productId } = await params;
+  const product = await getProduct(productId);
 
   if (!product || !product.isActive || product.stock === 0) {
     notFound();
