@@ -63,6 +63,7 @@ export default async function AdminProductsPage() {
                 <Image
                   src={product.images?.[0] || "/placeholder.jpg"}
                   alt={product.name}
+                  sizes="(max-width: 768px) 100vw, 380px"
                   fill
                   className="object-cover"
                 />

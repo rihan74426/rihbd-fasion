@@ -3,7 +3,7 @@ import mongoose from "mongoose";
 
 const OrderSchema = new mongoose.Schema(
   {
-    orderNumber: { type: String, required: true, unique: true },
+    orderNumber: { type: String, required: true, unique: true, index: true },
 
     // Product snapshot
     product: {
@@ -47,7 +47,6 @@ const OrderSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-OrderSchema.index({ orderNumber: 1 });
 OrderSchema.index({ status: 1, createdAt: -1 });
 OrderSchema.index({ customerPhone: 1 });
 

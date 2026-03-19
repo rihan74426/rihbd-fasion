@@ -4,6 +4,7 @@ import connectDB from "@/lib/mongodb";
 import Order from "@/models/Order";
 import Product from "@/models/Product";
 import { generateOrderNumber } from "@/lib/utils";
+import { sendOrderNotification } from "@/lib/email";
 
 export async function GET() {
   try {
@@ -44,13 +45,14 @@ export async function POST(request) {
     const product = await Product.findById(productId);
     if (!product)
       return NextResponse.json({ error: "Product not found" }, { status: 404 });
-    if (!product.isActive || product.stock === 0)
+    if (!product.isActive || product.stock === 0) {
       return NextResponse.json(
         { error: "Product not available" },
         { status: 400 }
       );
+    }
 
-    // Validate size if product has sizes defined
+    // Validate size
     if (product.sizes?.length > 0 && !selectedSize) {
       return NextResponse.json(
         { error: "Please select a size" },
@@ -68,7 +70,7 @@ export async function POST(request) {
       );
     }
 
-    // Use discountPrice if valid, otherwise regular price
+    // Determine charge price — use discountPrice if valid
     const chargePrice =
       product.discountPrice && product.discountPrice < product.price
         ? product.discountPrice
@@ -78,7 +80,7 @@ export async function POST(request) {
       orderNumber: generateOrderNumber(),
       product: productId,
       productName: product.name,
-      productPrice: chargePrice, // ← always the correct price
+      productPrice: chargePrice,
       productImage: product.images?.[0] || "/placeholder.jpg",
       selectedSize: selectedSize || null,
       customerName,
@@ -91,6 +93,19 @@ export async function POST(request) {
     // Decrement stock
     product.stock -= 1;
     await product.save();
+
+    // Send email notification to admin (non-blocking — don't fail order if email fails)
+    sendOrderNotification({
+      orderNumber: order.orderNumber,
+      customerName,
+      customerPhone,
+      customerAddress,
+      productName: product.name,
+      productPrice: chargePrice,
+      selectedSize: selectedSize || null,
+    }).catch((err) =>
+      console.error("Email notification failed (non-critical):", err)
+    );
 
     return NextResponse.json(order, { status: 201 });
   } catch (error) {

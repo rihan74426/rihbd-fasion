@@ -1,29 +1,21 @@
+// src/app/api/admin/products/[id]/route.js
 import { NextResponse } from "next/server";
 import connectDB from "@/lib/mongodb";
 import Product from "@/models/Product";
-import { verifyAdminToken, sendUnauthorized } from "@/lib/auth";
+import { verifyAdmin } from "@/lib/verifyAdmin";
 
-// GET - Fetch single product (admin only)
+// GET — fetch single product for edit page pre-fill
 export async function GET(request, { params }) {
+  if (!(await verifyAdmin())) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
   try {
-    // Verify admin authentication
-    const auth = await verifyAdminToken(request);
-    if (!auth.isValid) {
-      return sendUnauthorized(auth.error);
-    }
-
     await connectDB();
-
-    const product = await Product.findById(params.id).lean();
-
-    if (!product) {
+    const { id } = await params;
+    const product = await Product.findById(id).lean();
+    if (!product)
       return NextResponse.json({ error: "Product not found" }, { status: 404 });
-    }
-
-    return NextResponse.json({
-      success: true,
-      product,
-    });
+    return NextResponse.json({ success: true, product });
   } catch (error) {
     console.error("Error fetching product:", error);
     return NextResponse.json(
@@ -33,27 +25,24 @@ export async function GET(request, { params }) {
   }
 }
 
-// PUT - Update product (admin only)
+// PUT — update product
 export async function PUT(request, { params }) {
+  if (!(await verifyAdmin())) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
   try {
-    // Verify admin authentication
-    const auth = await verifyAdminToken(request);
-    if (!auth.isValid) {
-      return sendUnauthorized(auth.error);
-    }
-
     await connectDB();
-
+    const { id } = await params;
     const body = await request.json();
 
     const product = await Product.findByIdAndUpdate(
-      params.id,
+      id,
       {
         name: body.name,
         description: body.description,
         category: body.category,
         price: body.price,
-        discountPrice: body.discountPrice,
+        discountPrice: body.discountPrice ?? null,
         images: body.images,
         sizes: body.sizes,
         colors: body.colors,
@@ -64,9 +53,8 @@ export async function PUT(request, { params }) {
       { new: true, runValidators: true }
     );
 
-    if (!product) {
+    if (!product)
       return NextResponse.json({ error: "Product not found" }, { status: 404 });
-    }
 
     return NextResponse.json({
       success: true,
@@ -82,23 +70,17 @@ export async function PUT(request, { params }) {
   }
 }
 
-// DELETE - Delete product (admin only)
+// DELETE — delete product
 export async function DELETE(request, { params }) {
+  if (!(await verifyAdmin())) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
   try {
-    // Verify admin authentication
-    const auth = await verifyAdminToken(request);
-    if (!auth.isValid) {
-      return sendUnauthorized(auth.error);
-    }
-
     await connectDB();
-
-    const product = await Product.findByIdAndDelete(params.id);
-
-    if (!product) {
+    const { id } = await params;
+    const product = await Product.findByIdAndDelete(id);
+    if (!product)
       return NextResponse.json({ error: "Product not found" }, { status: 404 });
-    }
-
     return NextResponse.json({
       success: true,
       message: "Product deleted successfully",

@@ -19,10 +19,10 @@ export const metadata = {
 };
 
 // Call this once when the app starts
-if (typeof window === "undefined") {
-  // Only on server side
-  seedDefaultAdmin().catch(console.error);
-}
+// if (typeof window === "undefined") {
+//   // Only on server side
+//   seedDefaultAdmin().catch(console.error);
+// }
 
 export default function RootLayout({ children }) {
   return (
