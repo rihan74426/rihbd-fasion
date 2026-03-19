@@ -3,12 +3,12 @@
 
 "use client";
 
-import { MessageCircle } from "lucide-react";
-
 export default function WhatsAppButton() {
-  const whatsappNumber = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER;
+  const rawNumber = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER;
+  if (!rawNumber) return null;
 
-  if (!whatsappNumber) return null;
+  // Remove any + prefix — wa.me requires plain digits
+  const whatsappNumber = rawNumber.replace(/^\+/, "");
 
   const handleClick = () => {
     const message = encodeURIComponent(
@@ -16,7 +16,6 @@ export default function WhatsAppButton() {
     );
     window.open(`https://wa.me/${whatsappNumber}?text=${message}`, "_blank");
   };
-
   return (
     <button
       onClick={handleClick}

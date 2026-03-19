@@ -2,12 +2,13 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Upload, X, Plus } from "lucide-react";
+import { Upload, X, Plus, AlertCircle } from "lucide-react";
 import Image from "next/image";
 
 export default function CreateProductPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [uploadLoading, setUploadLoading] = useState(false);
   const [error, setError] = useState("");
   const [images, setImages] = useState([]);
   const [formData, setFormData] = useState({
@@ -51,39 +52,29 @@ export default function CreateProductPage() {
   const handleImageUpload = async (e) => {
     const files = Array.from(e.target.files || []);
     setLoading(true);
-
     try {
       for (const file of files) {
         const formDataUpload = new FormData();
         formDataUpload.append("file", file);
-        formDataUpload.append(
-          "upload_preset",
-          process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME
-        );
-
-        const response = await fetch(
-          `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload`,
-          {
-            method: "POST",
-            body: formDataUpload,
-          }
-        );
-
+        // Use your server-side upload route — safe, uses API secret
+        const response = await fetch("/api/upload", {
+          method: "POST",
+          body: formDataUpload,
+        });
         const data = await response.json();
-        if (data.secure_url) {
-          setImages([...images, data.secure_url]);
+        if (data.url) {
+          setImages((prev) => [...prev, data.url]);
         }
       }
     } catch (err) {
       setError("Failed to upload images");
-      console.error(err);
     } finally {
       setLoading(false);
     }
   };
 
   const handleRemoveImage = (index) => {
-    setImages(images.filter((_, i) => i !== index));
+    setImages((prevImages) => prevImages.filter((_, i) => i !== index));
   };
 
   const handleSubmit = async (e) => {
@@ -92,7 +83,23 @@ export default function CreateProductPage() {
     setLoading(true);
 
     try {
-      if (!images.length) {
+      // Validate form
+      if (!formData.name.trim()) {
+        throw new Error("Product name is required");
+      }
+      if (!formData.description.trim()) {
+        throw new Error("Product description is required");
+      }
+      if (!formData.category) {
+        throw new Error("Please select a category");
+      }
+      if (!formData.price || parseFloat(formData.price) <= 0) {
+        throw new Error("Valid price is required");
+      }
+      if (!formData.stock || parseInt(formData.stock) < 0) {
+        throw new Error("Valid stock quantity is required");
+      }
+      if (images.length === 0) {
         throw new Error("Please upload at least one product image");
       }
 
@@ -100,13 +107,18 @@ export default function CreateProductPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          ...formData,
-          images,
+          name: formData.name.trim(),
+          description: formData.description.trim(),
+          category: formData.category,
           price: parseFloat(formData.price),
           discountPrice: formData.discountPrice
             ? parseFloat(formData.discountPrice)
             : null,
+          images: images,
+          sizes: formData.sizes,
+          colors: formData.colors,
           stock: parseInt(formData.stock),
+          featured: formData.featured,
         }),
       });
 
@@ -116,10 +128,12 @@ export default function CreateProductPage() {
         throw new Error(data.error || "Failed to create product");
       }
 
+      // Success - redirect
       router.push("/admin/products");
       router.refresh();
     } catch (err) {
-      setError(err.message);
+      setError(err.message || "An error occurred");
+      console.error("Submit error:", err);
     } finally {
       setLoading(false);
     }
@@ -135,7 +149,11 @@ export default function CreateProductPage() {
       <form onSubmit={handleSubmit} className="space-y-8">
         {/* Error Message */}
         {error && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3">
+            <AlertCircle
+              size={20}
+              className="text-red-600 flex-shrink-0 mt-0.5"
+            />
             <p className="text-red-600">{error}</p>
           </div>
         )}
@@ -146,6 +164,7 @@ export default function CreateProductPage() {
             Product Images
           </h2>
 
+          {/* Upload Area */}
           <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-primary transition-colors">
             <input
               type="file"
@@ -154,7 +173,7 @@ export default function CreateProductPage() {
               onChange={handleImageUpload}
               className="hidden"
               id="image-upload"
-              disabled={loading}
+              disabled={uploadLoading}
             />
             <label
               htmlFor="image-upload"
@@ -164,31 +183,46 @@ export default function CreateProductPage() {
               <p className="text-gray-600 font-medium">
                 Click to upload images
               </p>
-              <p className="text-sm text-gray-500">PNG, JPG up to 10MB</p>
+              <p className="text-sm text-gray-500">PNG, JPG up to 10MB each</p>
             </label>
+            {uploadLoading && (
+              <div className="mt-3">
+                <p className="text-blue-600 text-sm">Uploading...</p>
+              </div>
+            )}
           </div>
 
-          {/* Image Preview */}
+          {/* Image Preview Grid */}
           {images.length > 0 && (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
-              {images.map((image, index) => (
-                <div key={index} className="relative group">
-                  <Image
-                    src={image}
-                    alt={`Product ${index + 1}`}
-                    width={150}
-                    height={150}
-                    className="w-full h-32 object-cover rounded-lg"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => handleRemoveImage(index)}
-                    className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                  >
-                    <X size={16} />
-                  </button>
-                </div>
-              ))}
+            <div className="mt-6">
+              <p className="text-sm font-medium text-gray-700 mb-3">
+                Uploaded Images ({images.length})
+              </p>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                {images.map((image, index) => (
+                  <div key={index} className="relative group">
+                    <div className="relative aspect-square bg-gray-100 rounded-lg overflow-hidden">
+                      <Image
+                        src={image}
+                        alt={`Product image ${index + 1}`}
+                        fill
+                        className="object-cover"
+                        sizes="(max-width: 640px) 100px, 150px"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveImage(index)}
+                      className="absolute top-2 right-2 bg-red-500 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
+                    >
+                      <X size={16} />
+                    </button>
+                    <p className="text-xs text-gray-600 mt-1 text-center">
+                      Image {index + 1}
+                    </p>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </div>
@@ -264,6 +298,7 @@ export default function CreateProductPage() {
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
                 placeholder="0.00"
                 step="0.01"
+                min="0"
                 required
               />
             </div>
@@ -280,6 +315,7 @@ export default function CreateProductPage() {
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
                 placeholder="0.00"
                 step="0.01"
+                min="0"
               />
             </div>
           </div>
@@ -296,6 +332,7 @@ export default function CreateProductPage() {
               onChange={handleInputChange}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
               placeholder="0"
+              min="0"
               required
             />
           </div>
@@ -371,15 +408,16 @@ export default function CreateProductPage() {
         <div className="flex gap-4">
           <button
             type="submit"
-            disabled={loading}
-            className="flex-1 bg-primary text-white py-3 rounded-lg font-semibold hover:bg-primary-dark transition-colors disabled:bg-gray-400"
+            disabled={loading || uploadLoading}
+            className="flex-1 bg-primary text-white py-3 rounded-lg font-semibold hover:bg-primary-dark transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
           >
-            {loading ? "Creating..." : "Create Product"}
+            {loading ? "Creating Product..." : "Create Product"}
           </button>
           <button
             type="button"
             onClick={() => router.back()}
-            className="flex-1 border-2 border-gray-300 text-gray-700 py-3 rounded-lg font-semibold hover:bg-gray-50 transition-colors"
+            disabled={loading}
+            className="flex-1 border-2 border-gray-300 text-gray-700 py-3 rounded-lg font-semibold hover:bg-gray-50 transition-colors disabled:bg-gray-100"
           >
             Cancel
           </button>

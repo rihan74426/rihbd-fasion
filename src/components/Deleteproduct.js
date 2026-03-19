@@ -22,7 +22,7 @@ export default function DeleteProduct({ productId }) {
     setLoading(true);
 
     try {
-      const response = await fetch(`/api/products/${productId}`, {
+      const response = await fetch(`/api/admin/products/${productId}`, {
         method: "DELETE",
       });
 

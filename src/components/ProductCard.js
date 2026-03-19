@@ -7,14 +7,15 @@ import { formatPrice } from "@/lib/utils";
 
 export default function ProductCard({ product }) {
   const isOutOfStock = product.stock === 0;
+  const productImage = product.images?.[0] || "/placeholder.jpg";
 
   return (
     <div className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition-shadow">
       {/* Product Image */}
-      <Link href={`/order/${product._id}`}>
+      <Link href={`/orders/${product._id}`}>
         <div className="relative aspect-[4/5] bg-gray-100">
           <Image
-            src={product.image}
+            src={productImage}
             alt={product.name}
             fill
             sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
@@ -34,7 +35,7 @@ export default function ProductCard({ product }) {
 
       {/* Product Info */}
       <div className="p-4">
-        <Link href={`/order/${product._id}`}>
+        <Link href={`/orders/${product._id}`}>
           <h3 className="font-semibold text-lg mb-2 line-clamp-2 min-h-[56px] hover:text-primary transition-colors">
             {product.name}
           </h3>
@@ -51,7 +52,7 @@ export default function ProductCard({ product }) {
 
         {/* Order Button */}
         <Link
-          href={`/order/${product._id}`}
+          href={`/orders/${product._id}`}
           className={`block w-full text-center py-3 rounded-md font-medium transition-colors ${
             isOutOfStock
               ? "bg-gray-300 text-gray-500 cursor-not-allowed pointer-events-none"

@@ -10,24 +10,46 @@ const ProductSchema = new mongoose.Schema(
       required: [true, "Product name is required"],
       trim: true,
     },
+    description: {
+      type: String,
+      required: [true, "Description is required"],
+    },
+    category: {
+      type: String,
+      required: [true, "Category is required"],
+      enum: ["mens", "womens", "kids", "accessories"],
+    },
     price: {
       type: Number,
       required: [true, "Price is required"],
       min: 0,
     },
-    description: {
-      type: String,
-      required: [true, "Description is required"],
+    discountPrice: {
+      type: Number,
+      default: null,
+      min: 0,
     },
-    image: {
-      type: String,
-      required: [true, "Image is required"],
+    images: {
+      type: [String],
+      required: [true, "At least one image is required"],
+    },
+    sizes: {
+      type: [String],
+      default: ["XS", "S", "M", "L", "XL", "XXL"],
+    },
+    colors: {
+      type: [String],
+      default: [],
     },
     stock: {
       type: Number,
       required: true,
       default: 0,
       min: 0,
+    },
+    featured: {
+      type: Boolean,
+      default: false,
     },
     isActive: {
       type: Boolean,
@@ -41,6 +63,8 @@ const ProductSchema = new mongoose.Schema(
 
 // Index for better performance
 ProductSchema.index({ isActive: 1, createdAt: -1 });
+ProductSchema.index({ featured: 1, createdAt: -1 });
+ProductSchema.index({ category: 1 });
 
 // Export model
 export default mongoose.models.Product ||

@@ -38,7 +38,7 @@ export default function AdminLayout({ children }) {
       <div
         className={`${
           sidebarOpen ? "w-64" : "w-20"
-        } bg-gray-900 text-white transition-all duration-300 flex flex-col`}
+        } bg-gray-900 text-white transition-all duration-300 flex flex-col fixed h-screen left-0 top-0 z-40`}
       >
         {/* Logo */}
         <div className="p-6 border-b border-gray-700">
@@ -48,7 +48,7 @@ export default function AdminLayout({ children }) {
             </h1>
             <button
               onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="p-2 hover:bg-gray-800 rounded-lg"
+              className="p-2 hover:bg-gray-800 rounded-lg transition-colors"
             >
               {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
             </button>
@@ -56,7 +56,7 @@ export default function AdminLayout({ children }) {
         </div>
 
         {/* Menu Items */}
-        <nav className="flex-1 p-4 space-y-2">
+        <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
           {menuItems.map((item) => (
             <Link
               key={item.href}
@@ -67,7 +67,7 @@ export default function AdminLayout({ children }) {
                   : "text-gray-300 hover:bg-gray-800"
               }`}
             >
-              <item.icon size={20} />
+              <item.icon size={20} className="flex-shrink-0" />
               {sidebarOpen && <span>{item.label}</span>}
             </Link>
           ))}
@@ -79,21 +79,28 @@ export default function AdminLayout({ children }) {
             onClick={handleLogout}
             className="w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-300 hover:bg-gray-800 transition-colors"
           >
-            <LogOut size={20} />
+            <LogOut size={20} className="flex-shrink-0" />
             {sidebarOpen && <span>Logout</span>}
           </button>
         </div>
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div
+        className={`flex-1 flex flex-col overflow-hidden ${
+          sidebarOpen ? "ml-64" : "ml-20"
+        } transition-all duration-300`}
+      >
         {/* Top Bar */}
-        <div className="bg-white border-b border-gray-200 px-8 py-4 flex items-center justify-between">
+        <div className="bg-white border-b border-gray-200 px-8 py-4 flex items-center justify-between shadow-sm">
           <h2 className="text-2xl font-bold text-gray-900">
             {menuItems.find((item) => item.href === pathname)?.label || "Admin"}
           </h2>
           <div className="flex items-center space-x-4">
             <div className="text-sm text-gray-600">Welcome, Admin</div>
+            <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center text-white font-semibold">
+              A
+            </div>
           </div>
         </div>
 

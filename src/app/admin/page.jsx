@@ -1,14 +1,11 @@
 // app/admin/page.js
 // Admin dashboard - Orders list
 
-"use client";
-
-import { useEffect, useState } from "react";
-import Link from "next/link";
-import { Package, Users, TrendingUp, Plus } from "lucide-react";
 import { formatDate, formatPrice } from "@/lib/utils";
 import connectDB from "@/lib/mongodb";
+import Product from "@/models/Product";
 import Order from "@/models/Order";
+import AdminDashboardClient from "@/components/AdminDashboardClient";
 import UpdateOrderStatus from "@/components/UpdateOrderStatus";
 
 async function getOrders() {
@@ -23,14 +20,38 @@ async function getOrders() {
   }
 }
 
-export default async function AdminDashboardPage() {
-  const [stats, setStats] = useState({
-    products: 0,
-    customers: 0,
-    revenue: 0,
-  });
-  const [loading, setLoading] = useState(true);
-  const orders = await getOrders();
+async function getDashboardStats() {
+  try {
+    await connectDB();
+
+    const [products, customers, orders] = await Promise.all([
+      Product.countDocuments(),
+      Order.distinct("customerPhone"),
+      Order.find().select("productPrice"),
+    ]);
+
+    const revenue = orders.reduce(
+      (sum, order) => sum + (order.productPrice || 0),
+      0
+    );
+
+    return {
+      products,
+      customers: customers.length,
+      revenue: Math.round(revenue),
+    };
+  } catch (error) {
+    console.error("Error fetching dashboard stats:", error);
+    return {
+      products: 0,
+      customers: 0,
+      revenue: 0,
+    };
+  }
+}
+
+export default async function AdminDashboard() {
+  const [stats, orders] = await Promise.all([getDashboardStats(), getOrders()]);
 
   const orderStats = {
     total: orders.length,
@@ -38,98 +59,12 @@ export default async function AdminDashboardPage() {
     delivered: orders.filter((o) => o.status === "DELIVERED").length,
   };
 
-  useEffect(() => {
-    // Fetch dashboard stats
-    const fetchStats = async () => {
-      try {
-        // Replace with actual API calls
-        setStats({
-          products: 24,
-          customers: 156,
-          revenue: 12500,
-        });
-      } catch (error) {
-        console.error("Error fetching stats:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchStats();
-  }, []);
-
-  const StatCard = ({ icon: Icon, label, value, color }) => (
-    <div className="bg-white rounded-lg shadow p-6 flex items-start space-x-4">
-      <div className={`p-3 rounded-lg ${color}`}>
-        <Icon size={24} className="text-white" />
-      </div>
-      <div>
-        <p className="text-gray-600 text-sm">{label}</p>
-        <p className="text-3xl font-bold text-gray-900">{value}</p>
-      </div>
-    </div>
-  );
-
   return (
     <div className="space-y-8">
-      {/* Welcome Section */}
-      <div className="bg-gradient-to-r from-primary to-primary-dark rounded-lg shadow p-8 text-white">
-        <h1 className="text-4xl font-bold mb-2">Welcome Back!</h1>
-        <p className="text-white/90">
-          Here's what's happening with your store today.
-        </p>
-      </div>
+      {/* Dashboard Stats - Client Component */}
+      <AdminDashboardClient initialStats={stats} />
 
-      {/* Quick Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <StatCard
-          icon={Package}
-          label="Total Products"
-          value={stats.products}
-          color="bg-blue-500"
-        />
-        <StatCard
-          icon={Users}
-          label="Total Customers"
-          value={stats.customers}
-          color="bg-green-500"
-        />
-        <StatCard
-          icon={TrendingUp}
-          label="Total Revenue"
-          value={`$${stats.revenue.toLocaleString()}`}
-          color="bg-purple-500"
-        />
-      </div>
-
-      {/* Quick Actions */}
-      <div className="bg-white rounded-lg shadow p-8">
-        <h2 className="text-2xl font-bold text-gray-900 mb-6">Quick Actions</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Link
-            href="/admin/products/create"
-            className="flex items-center space-x-3 p-4 border-2 border-gray-200 rounded-lg hover:border-primary hover:bg-primary/5 transition-colors"
-          >
-            <Plus size={24} className="text-primary" />
-            <div>
-              <h3 className="font-semibold text-gray-900">Add Product</h3>
-              <p className="text-sm text-gray-600">Create a new product</p>
-            </div>
-          </Link>
-          <Link
-            href="/admin/products"
-            className="flex items-center space-x-3 p-4 border-2 border-gray-200 rounded-lg hover:border-primary hover:bg-primary/5 transition-colors"
-          >
-            <Package size={24} className="text-primary" />
-            <div>
-              <h3 className="font-semibold text-gray-900">View Products</h3>
-              <p className="text-sm text-gray-600">Manage all products</p>
-            </div>
-          </Link>
-        </div>
-      </div>
-
-      {/* Stats Cards */}
+      {/* Order Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="bg-white rounded-lg shadow p-6">
           <p className="text-sm text-gray-600 mb-1">Total Orders</p>

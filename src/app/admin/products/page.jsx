@@ -33,7 +33,7 @@ export default async function AdminProductsPage() {
 
         <Link
           href="/admin/products/create"
-          className="bg-primary hover:bg-primary-dark text-yellow-500 px-4 py-2 rounded-md font-medium transition-colors"
+          className="bg-primary hover:bg-primary-dark text-white px-4 py-2 rounded-md font-medium transition-colors"
         >
           Add Product
         </Link>
@@ -41,7 +41,8 @@ export default async function AdminProductsPage() {
 
       {/* Products Grid */}
       {products.length === 0 ? (
-        <div className="bg-gray-500 rounded-lg shadow p-12 text-center">
+        <div className="bg-white rounded-lg shadow p-12 text-center">
+          {" "}
           <p className="text-gray-500 mb-4">No products yet</p>
           <Link
             href="/admin/products/create"
@@ -60,7 +61,7 @@ export default async function AdminProductsPage() {
               {/* Product Image */}
               <div className="relative aspect-square bg-gray-100">
                 <Image
-                  src={product.image}
+                  src={product.images?.[0] || "/placeholder.jpg"}
                   alt={product.name}
                   fill
                   className="object-cover"

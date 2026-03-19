@@ -30,6 +30,8 @@ export default async function OrderPage({ params }) {
     notFound();
   }
 
+  const productImage = product.images?.[0] || "/placeholder.jpg";
+
   return (
     <main className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -60,7 +62,7 @@ export default async function OrderPage({ params }) {
             <div>
               <div className="relative aspect-square rounded-lg overflow-hidden bg-gray-100 mb-4">
                 <Image
-                  src={product.image}
+                  src={productImage}
                   alt={product.name}
                   fill
                   className="object-cover"

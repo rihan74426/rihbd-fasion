@@ -62,7 +62,7 @@ export async function POST(request) {
       product: productId,
       productName: product.name,
       productPrice: product.price,
-      productImage: product.image,
+      productImage: product.images?.[0] || "/placeholder.jpg",
       customerName,
       customerPhone,
       customerAddress,
