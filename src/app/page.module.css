@@ -1,0 +1,72 @@
+/* Global vars and helpers so page sees brand colors and skeletons */
+:global(:root) {
+  --logo-navy: #0b3d91;
+  --logo-navy-dark: #062a5f;
+  --logo-gold: #d4af37;
+  --logo-gold-dark: #b8922b;
+  --site-bg: #fafafa;
+  --card-bg: #ffffff;
+  --muted: #6b7280;
+  --focus: rgba(212, 175, 55, 0.18);
+  --font-main: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial;
+}
+
+/* Page root (scope via module) */
+.page {
+  font-family: var(--font-main);
+  background-color: var(--site-bg);
+  color: #111827;
+  /* small safe padding when using non-Tailwind contexts */
+  font-smoothing: antialiased;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Hero CTA helpers (can be used with className) */
+:global(.hero-cta) {
+  background: linear-gradient(90deg, var(--logo-gold), var(--logo-gold-dark));
+  color: var(--logo-navy);
+  border-radius: 9999px;
+  padding: 0.6rem 1.25rem;
+  font-weight: 600;
+}
+
+:global(.hero-contact) {
+  border-radius: 9999px;
+  padding: 0.6rem 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+/* Grid container helper */
+:global(.page-container) {
+  max-width: 1120px;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+/* Skeleton shimmer */
+:global(.skeleton) {
+  background: linear-gradient(90deg, #f3f3f3 0%, #ececec 50%, #f3f3f3 100%);
+  background-size: 200% 100%;
+  animation: shimmer 1.2s linear infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* Small utility for focus ring used alongside Tailwind inputs */
+:global(.focus-ring) {
+  box-shadow: 0 0 0 4px var(--focus);
+  outline: none;
+}
+
+/* Keep page module lightweight — Tailwind handles layout and sizing */

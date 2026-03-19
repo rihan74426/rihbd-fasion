@@ -1,0 +1,35 @@
+{
+  "name": "rihbd-fashion",
+  "version": "1.0.0",
+  "description": "A modern e-commerce platform for fashion enthusiasts, built with Next.js and MongoDB. It offers a seamless shopping experience with features like user authentication, product management, and secure payment processing.",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "create-admin": "node scripts/create-admin.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cloudinary": "^2.2.0",
+    "date-fns": "^3.6.0",
+    "jose": "^6.2.1",
+    "jsonwebtoken": "^9.0.2",
+    "lucide-react": "^0.363.0",
+    "mongoose": "^8.3.0",
+    "next": "^16.1.6",
+    "react": "^18.3.0",
+    "react-dom": "^18.3.0"
+  },
+  "devDependencies": {
+    "autoprefixer": "^10.4.19",
+    "eslint": "^10.0.3",
+    "eslint-config-next": "^16.1.6",
+    "postcss": "^8.4.38",
+    "tailwindcss": "^3.4.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
