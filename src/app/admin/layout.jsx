@@ -113,32 +113,46 @@ const NAV = [
   },
 ];
 
-export default function AdminLayout({ children }) {
-  const router = useRouter();
-  const pathname = usePathname();
-  const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [mobileOpen, setMobileOpen] = useState(false);
+function LoginOnlyLayout({ children }) {
   const appName = process.env.NEXT_PUBLIC_APP_NAME || "Rihbd Fashion";
 
-  // Close mobile sidebar on route change
-  useEffect(() => {
-    setMobileOpen(false);
-  }, [pathname]);
+  return (
+    <>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap');
+        *, *::before, *::after { box-sizing: border-box; }
+        body { margin: 0; background: #f7f8fc; font-family: 'DM Sans', sans-serif; }
+      `}</style>
+      {children}
+    </>
+  );
+}
 
-  // Close sidebar on small screens by default
-  useEffect(() => {
-    const check = () => {
-      if (window.innerWidth < 1024) setSidebarOpen(false);
-    };
-    check();
-    window.addEventListener("resize", check);
-    return () => window.removeEventListener("resize", check);
-  }, []);
+function AdminShell({
+  children,
+  pathname,
+  router,
+  sidebarOpen,
+  setSidebarOpen,
+  mobileOpen,
+  setMobileOpen,
+  loggingOut,
+  setLoggingOut,
+}) {
+  const appName = process.env.NEXT_PUBLIC_APP_NAME || "Rihbd Fashion";
 
-  const handleLogout = () => {
-    document.cookie =
-      "admin-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC;";
+  const handleLogout = async () => {
+    if (loggingOut) return;
+    setLoggingOut(true);
+
+    try {
+      await fetch("/api/admin/logout", { method: "POST" });
+    } catch {
+      // If logout fails, still redirect. Middleware should block stale sessions.
+    }
+
     router.push("/admin/login");
+    router.refresh();
   };
 
   const currentLabel =
@@ -147,7 +161,6 @@ export default function AdminLayout({ children }) {
 
   const SidebarContent = () => (
     <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
-      {/* Logo area */}
       <div
         style={{ padding: "20px 20px 16px", borderBottom: "1px solid #f1f5f9" }}
       >
@@ -157,7 +170,7 @@ export default function AdminLayout({ children }) {
             textDecoration: "none",
             display: "flex",
             alignItems: "center",
-            gap: "10px",
+            gap: 10,
           }}
         >
           <div
@@ -182,6 +195,7 @@ export default function AdminLayout({ children }) {
               }}
             />
           </div>
+
           {(sidebarOpen || mobileOpen) && (
             <div>
               <p
@@ -191,6 +205,7 @@ export default function AdminLayout({ children }) {
                   fontSize: 14,
                   color: "#0f172a",
                   lineHeight: 1.2,
+                  margin: 0,
                 }}
               >
                 {appName}
@@ -201,6 +216,7 @@ export default function AdminLayout({ children }) {
                   fontSize: 11,
                   color: "#94a3b8",
                   lineHeight: 1,
+                  margin: 0,
                 }}
               >
                 Admin Panel
@@ -210,26 +226,29 @@ export default function AdminLayout({ children }) {
         </Link>
       </div>
 
-      {/* Nav links */}
-      <nav style={{ flex: 1, padding: "12px 12px", overflowY: "auto" }}>
-        <p
-          style={{
-            fontFamily: "'DM Sans', sans-serif",
-            fontSize: 10,
-            fontWeight: 600,
-            color: "#94a3b8",
-            letterSpacing: "0.08em",
-            textTransform: "uppercase",
-            padding: "4px 8px 8px",
-            display: sidebarOpen || mobileOpen ? "block" : "none",
-          }}
-        >
-          Menu
-        </p>
+      <nav style={{ flex: 1, padding: "12px", overflowY: "auto" }}>
+        {(sidebarOpen || mobileOpen) && (
+          <p
+            style={{
+              fontFamily: "'DM Sans', sans-serif",
+              fontSize: 10,
+              fontWeight: 600,
+              color: "#94a3b8",
+              letterSpacing: "0.08em",
+              textTransform: "uppercase",
+              padding: "4px 8px 8px",
+              margin: 0,
+            }}
+          >
+            Menu
+          </p>
+        )}
+
         {NAV.map((item) => {
           const active =
             pathname === item.href ||
             (item.href !== "/admin" && pathname.startsWith(item.href));
+
           return (
             <Link
               key={item.href}
@@ -274,7 +293,6 @@ export default function AdminLayout({ children }) {
         })}
       </nav>
 
-      {/* Bottom: view shop + logout */}
       <div
         style={{
           padding: "12px",
@@ -287,6 +305,7 @@ export default function AdminLayout({ children }) {
         <Link
           href="/"
           target="_blank"
+          rel="noreferrer"
           style={{
             display: "flex",
             alignItems: "center",
@@ -334,8 +353,10 @@ export default function AdminLayout({ children }) {
           </svg>
           {(sidebarOpen || mobileOpen) && <span>View Shop</span>}
         </Link>
+
         <button
           onClick={handleLogout}
+          disabled={loggingOut}
           style={{
             display: "flex",
             alignItems: "center",
@@ -344,8 +365,8 @@ export default function AdminLayout({ children }) {
             borderRadius: 9,
             background: "none",
             border: "none",
-            cursor: "pointer",
-            color: "#ef4444",
+            cursor: loggingOut ? "not-allowed" : "pointer",
+            color: loggingOut ? "#94a3b8" : "#ef4444",
             fontFamily: "'DM Sans', sans-serif",
             fontSize: 13,
             fontWeight: 500,
@@ -354,9 +375,10 @@ export default function AdminLayout({ children }) {
             whiteSpace: "nowrap",
             overflow: "hidden",
             width: "100%",
+            opacity: loggingOut ? 0.6 : 1,
           }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.background = "#fef2f2";
+            if (!loggingOut) e.currentTarget.style.background = "#fef2f2";
           }}
           onMouseLeave={(e) => {
             e.currentTarget.style.background = "none";
@@ -377,7 +399,9 @@ export default function AdminLayout({ children }) {
               strokeLinejoin="round"
             />
           </svg>
-          {(sidebarOpen || mobileOpen) && <span>Logout</span>}
+          {(sidebarOpen || mobileOpen) && (
+            <span>{loggingOut ? "Logging out…" : "Logout"}</span>
+          )}
         </button>
       </div>
     </div>
@@ -389,13 +413,16 @@ export default function AdminLayout({ children }) {
         @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap');
         *, *::before, *::after { box-sizing: border-box; }
         body { margin: 0; background: #f7f8fc; font-family: 'DM Sans', sans-serif; }
+
         .admin-input {
-          width: 100%; padding: 9px 12px;
+          width: 100%;
+          padding: 9px 12px;
           background: #fff;
           border: 1.5px solid #e2e8f0;
           border-radius: 8px;
           font-family: 'DM Sans', sans-serif;
-          font-size: 14px; color: #0f172a;
+          font-size: 14px;
+          color: #0f172a;
           outline: none;
           transition: border-color 0.15s, box-shadow 0.15s;
         }
@@ -404,56 +431,28 @@ export default function AdminLayout({ children }) {
           box-shadow: 0 0 0 3px rgba(11,61,145,0.1);
         }
         .admin-input::placeholder { color: #94a3b8; }
-        .admin-btn-primary {
-          background: #0b3d91; color: #fff;
-          border: none; border-radius: 8px;
-          padding: 9px 18px;
-          font-family: 'DM Sans', sans-serif;
-          font-size: 14px; font-weight: 600;
-          cursor: pointer; transition: background 0.15s, box-shadow 0.15s;
+        select.admin-input {
+          appearance: none;
+          background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M2 4l4 4 4-4' stroke='%2394a3b8' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round' fill='none'/%3E%3C/svg%3E");
+          background-repeat: no-repeat;
+          background-position: right 12px center;
+          padding-right: 32px;
         }
-        .admin-btn-primary:hover { background: #0a3478; box-shadow: 0 4px 12px rgba(11,61,145,0.25); }
-        .admin-btn-primary:disabled { background: #94a3b8; cursor: not-allowed; box-shadow: none; }
-        .admin-btn-danger {
-          background: #ef4444; color: #fff;
-          border: none; border-radius: 8px;
-          padding: 7px 14px;
-          font-family: 'DM Sans', sans-serif;
-          font-size: 13px; font-weight: 600;
-          cursor: pointer; transition: background 0.15s;
-        }
-        .admin-btn-danger:hover { background: #dc2626; }
-        .admin-btn-outline {
-          background: #fff; color: #0b3d91;
-          border: 1.5px solid #0b3d91; border-radius: 8px;
-          padding: 8px 18px;
-          font-family: 'DM Sans', sans-serif;
-          font-size: 14px; font-weight: 600;
-          cursor: pointer; transition: all 0.15s;
-        }
-        .admin-btn-outline:hover { background: #0b3d91; color: #fff; }
-        .admin-card {
-          background: #fff; border-radius: 12px;
-          box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
-          border: 1px solid #f1f5f9;
-        }
-        .admin-label {
-          display: block; font-size: 13px; font-weight: 500;
-          color: #374151; margin-bottom: 6px;
-          font-family: 'DM Sans', sans-serif;
-        }
-        select.admin-input { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M2 4l4 4 4-4' stroke='%2394a3b8' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round' fill='none'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; padding-right: 32px; }
         textarea.admin-input { resize: vertical; min-height: 96px; }
+
         @media (max-width: 768px) {
           .sidebar-desktop { display: none !important; }
+          .mobile-hamburger { display: flex !important; }
+          .topbar-name-desktop { display: none !important; }
         }
         @media (min-width: 769px) {
-          .mobile-overlay { display: none !important; }
+          .mobile-overlay-sidebar { display: none !important; }
+          .mobile-hamburger { display: none !important; }
+          .sidebar-collapse-btn { display: flex !important; }
         }
       `}</style>
 
       <div style={{ display: "flex", minHeight: "100vh" }}>
-        {/* ── Desktop Sidebar ── */}
         <aside
           className="sidebar-desktop"
           style={{
@@ -473,13 +472,11 @@ export default function AdminLayout({ children }) {
           <SidebarContent />
         </aside>
 
-        {/* ── Mobile Overlay Sidebar ── */}
         {mobileOpen && (
           <div
-            className="mobile-overlay"
+            className="mobile-overlay-sidebar"
             style={{ position: "fixed", inset: 0, zIndex: 50 }}
           >
-            {/* Backdrop */}
             <div
               onClick={() => setMobileOpen(false)}
               style={{
@@ -488,7 +485,6 @@ export default function AdminLayout({ children }) {
                 background: "rgba(0,0,0,0.4)",
               }}
             />
-            {/* Drawer */}
             <aside
               style={{
                 position: "absolute",
@@ -506,27 +502,24 @@ export default function AdminLayout({ children }) {
           </div>
         )}
 
-        {/* ── Main Area ── */}
         <div
+          className="admin-main-area"
           style={{
             flex: 1,
-            marginLeft: 0,
             display: "flex",
             flexDirection: "column",
             minWidth: 0,
           }}
-          className="main-area"
         >
-          {/* Inject margin for desktop sidebar */}
           <style>{`
             @media (min-width: 769px) {
-              .main-area { margin-left: ${
-                sidebarOpen ? 240 : 64
-              }px !important; transition: margin-left 0.25s ease; }
+              .admin-main-area {
+                margin-left: ${sidebarOpen ? 240 : 64}px !important;
+                transition: margin-left 0.25s ease;
+              }
             }
           `}</style>
 
-          {/* ── Topbar ── */}
           <header
             style={{
               position: "sticky",
@@ -543,9 +536,9 @@ export default function AdminLayout({ children }) {
             }}
           >
             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              {/* Desktop collapse toggle */}
               <button
                 onClick={() => setSidebarOpen((o) => !o)}
+                className="sidebar-collapse-btn sidebar-desktop"
                 style={{
                   background: "none",
                   border: "none",
@@ -553,10 +546,8 @@ export default function AdminLayout({ children }) {
                   padding: 6,
                   borderRadius: 8,
                   color: "#64748b",
-                  transition: "background 0.15s",
                   display: "none",
                 }}
-                className="sidebar-desktop"
                 onMouseEnter={(e) =>
                   (e.currentTarget.style.background = "#f8fafc")
                 }
@@ -573,9 +564,10 @@ export default function AdminLayout({ children }) {
                   />
                 </svg>
               </button>
-              {/* Mobile hamburger */}
+
               <button
                 onClick={() => setMobileOpen((o) => !o)}
+                className="mobile-hamburger"
                 style={{
                   background: "none",
                   border: "none",
@@ -583,8 +575,8 @@ export default function AdminLayout({ children }) {
                   padding: 6,
                   borderRadius: 8,
                   color: "#64748b",
+                  display: "none",
                 }}
-                className="mobile-overlay" // reuse class to show only on mobile via CSS override below
               >
                 <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
                   <path
@@ -596,26 +588,23 @@ export default function AdminLayout({ children }) {
                 </svg>
               </button>
 
-              <div>
-                <h1
-                  style={{
-                    fontFamily: "'DM Sans', sans-serif",
-                    fontSize: 17,
-                    fontWeight: 700,
-                    color: "#0f172a",
-                    margin: 0,
-                  }}
-                >
-                  {currentLabel}
-                </h1>
-              </div>
+              <h1
+                style={{
+                  fontFamily: "'DM Sans', sans-serif",
+                  fontSize: 17,
+                  fontWeight: 700,
+                  color: "#0f172a",
+                  margin: 0,
+                }}
+              >
+                {currentLabel}
+              </h1>
             </div>
 
-            {/* Right: admin badge */}
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
               <div
-                style={{ textAlign: "right", display: "none" }}
-                className="topbar-name"
+                style={{ textAlign: "right" }}
+                className="topbar-name-desktop"
               >
                 <p
                   style={{
@@ -639,6 +628,7 @@ export default function AdminLayout({ children }) {
                   Administrator
                 </p>
               </div>
+
               <div
                 style={{
                   width: 36,
@@ -664,26 +654,51 @@ export default function AdminLayout({ children }) {
             </div>
           </header>
 
-          {/* ── Page Content ── */}
           <main style={{ flex: 1, padding: "28px 24px", overflowX: "hidden" }}>
             {children}
           </main>
         </div>
       </div>
-
-      {/* Expose hamburger on mobile via CSS */}
-      <style>{`
-        @media (max-width: 768px) {
-          .sidebar-desktop { display: none !important; }
-          .mobile-overlay { display: flex !important; }
-          .topbar-name { display: block !important; }
-          button.mobile-overlay { display: block !important; }
-        }
-        @media (min-width: 769px) {
-          .sidebar-desktop button { display: flex !important; }
-          button.mobile-overlay { display: none !important; }
-        }
-      `}</style>
     </>
+  );
+}
+
+export default function AdminLayout({ children }) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
+
+  const isLoginPage = pathname === "/admin/login";
+
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [pathname]);
+
+  useEffect(() => {
+    const check = () => {
+      if (window.innerWidth < 1024) setSidebarOpen(false);
+    };
+
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
+
+  return isLoginPage ? (
+    <LoginOnlyLayout>{children}</LoginOnlyLayout>
+  ) : (
+    <AdminShell
+      children={children}
+      pathname={pathname}
+      router={router}
+      sidebarOpen={sidebarOpen}
+      setSidebarOpen={setSidebarOpen}
+      mobileOpen={mobileOpen}
+      setMobileOpen={setMobileOpen}
+      loggingOut={loggingOut}
+      setLoggingOut={setLoggingOut}
+    />
   );
 }
