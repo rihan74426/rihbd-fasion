@@ -1,26 +1,19 @@
+// src/app/api/admin/orders/route.js
 import { NextResponse } from "next/server";
+import { verifyAdmin } from "@/lib/verifyAdmin";
 import connectDB from "@/lib/mongodb";
 import Order from "@/models/Order";
-import { verifyAdminToken, sendUnauthorized } from "@/lib/auth";
 
 export async function GET(request) {
   try {
-    // Verify admin authentication
-    const auth = await verifyAdminToken(request);
-    if (!auth.isValid) {
-      return sendUnauthorized(auth.error);
+    const isAdmin = await verifyAdmin();
+    if (!isAdmin) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     await connectDB();
-
-    const orders = await Order.find()
-      .populate("product")
-      .sort({ createdAt: -1 });
-
-    return NextResponse.json({
-      success: true,
-      orders,
-    });
+    const orders = await Order.find().sort({ createdAt: -1 });
+    return NextResponse.json({ orders, success: true });
   } catch (error) {
     console.error("Error fetching orders:", error);
     return NextResponse.json(

@@ -1,41 +1,30 @@
-// Create src/app/api/admin/stats/route.js
+// src/app/api/admin/stats/route.js
 import { NextResponse } from "next/server";
+import { verifyAdmin } from "@/lib/verifyAdmin";
 import connectDB from "@/lib/mongodb";
 import Product from "@/models/Product";
 import Order from "@/models/Order";
-import { verifyAdminToken, sendUnauthorized } from "@/lib/auth";
 
 export async function GET(request) {
   try {
-    // Verify admin authentication
-    const auth = await verifyAdminToken(request);
-    if (!auth.isValid) {
-      return sendUnauthorized(auth.error);
+    const isAdmin = await verifyAdmin();
+    if (!isAdmin) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     await connectDB();
 
-    const [products, customers, orders] = await Promise.all([
-      Product.countDocuments(),
-      Order.distinct("customerPhone"),
-      Order.find().select("productPrice"),
-    ]);
-
-    const revenue = orders.reduce(
-      (sum, order) => sum + (order.productPrice || 0),
-      0
-    );
+    const products = await Product.countDocuments();
+    const orders = await Order.find();
+    const customers = new Set(orders.map((o) => o.customerPhone)).size;
+    const revenue = orders.reduce((sum, o) => sum + o.productPrice, 0);
 
     return NextResponse.json({
       success: true,
-      stats: {
-        products,
-        customers: customers.length,
-        revenue: Math.round(revenue),
-      },
+      stats: { products, customers, revenue },
     });
   } catch (error) {
-    console.error("Error fetching stats:", error);
+    console.error("Stats error:", error);
     return NextResponse.json(
       { error: "Failed to fetch stats" },
       { status: 500 }

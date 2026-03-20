@@ -1,6 +1,3 @@
-// components/DeleteProduct.js
-// Client component to delete products
-
 "use client";
 
 import { useState } from "react";
@@ -15,21 +12,14 @@ export default function DeleteProduct({ productId }) {
       !confirm(
         "Are you sure you want to delete this product? This cannot be undone."
       )
-    ) {
+    )
       return;
-    }
-
     setLoading(true);
-
     try {
       const response = await fetch(`/api/admin/products/${productId}`, {
         method: "DELETE",
       });
-
-      if (!response.ok) {
-        throw new Error("Failed to delete product");
-      }
-
+      if (!response.ok) throw new Error("Failed to delete product");
       router.refresh();
     } catch (error) {
       alert(error.message);
@@ -41,9 +31,37 @@ export default function DeleteProduct({ productId }) {
     <button
       onClick={handleDelete}
       disabled={loading}
-      className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors disabled:opacity-50"
+      style={{
+        background: "#fef2f2",
+        color: "#991b1b",
+        border: "1px solid #fecaca",
+        padding: "7px 12px",
+        borderRadius: 7,
+        fontFamily: "'DM Sans', sans-serif",
+        fontSize: 13,
+        fontWeight: 600,
+        cursor: loading ? "not-allowed" : "pointer",
+        opacity: loading ? 0.5 : 1,
+        transition: "background 0.15s",
+        display: "flex",
+        alignItems: "center",
+        gap: 4,
+      }}
+      onMouseEnter={(e) => {
+        if (!loading) e.currentTarget.style.background = "#fee2e2";
+      }}
+      onMouseLeave={(e) => (e.currentTarget.style.background = "#fef2f2")}
     >
-      {loading ? "Deleting..." : "Delete"}
+      <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+        <path
+          d="M2 3h9M4.5 3V2h4v1M5 5.5v4M8 5.5v4M3 3l.5 8h6L10 3"
+          stroke="currentColor"
+          strokeWidth="1.2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+      {loading ? "…" : "Delete"}
     </button>
   );
 }

@@ -1,6 +1,3 @@
-// components/UpdateOrderStatus.js
-// Client component to update order status
-
 "use client";
 
 import { useState } from "react";
@@ -12,22 +9,14 @@ export default function UpdateOrderStatus({ orderId, currentStatus }) {
 
   const handleStatusChange = async (newStatus) => {
     if (!confirm(`Change order status to ${newStatus}?`)) return;
-
     setLoading(true);
-
     try {
       const response = await fetch(`/api/orders/${orderId}`, {
         method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: newStatus }),
       });
-
-      if (!response.ok) {
-        throw new Error("Failed to update order");
-      }
-
+      if (!response.ok) throw new Error("Failed to update order");
       router.refresh();
     } catch (error) {
       alert(error.message);
@@ -37,22 +26,55 @@ export default function UpdateOrderStatus({ orderId, currentStatus }) {
   };
 
   return (
-    <div className="flex gap-2">
+    <div style={{ display: "flex", gap: 6 }}>
       {currentStatus === "PENDING" && (
         <button
           onClick={() => handleStatusChange("DELIVERED")}
           disabled={loading}
-          className="text-xs bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded transition-colors disabled:opacity-50"
+          style={{
+            background: "#ecfdf5",
+            color: "#065f46",
+            border: "1px solid #a7f3d0",
+            padding: "4px 10px",
+            borderRadius: 6,
+            fontFamily: "'DM Sans', sans-serif",
+            fontSize: 12,
+            fontWeight: 600,
+            cursor: loading ? "not-allowed" : "pointer",
+            opacity: loading ? 0.5 : 1,
+            transition: "background 0.15s",
+            whiteSpace: "nowrap",
+          }}
+          onMouseEnter={(e) => {
+            if (!loading) e.currentTarget.style.background = "#d1fae5";
+          }}
+          onMouseLeave={(e) => (e.currentTarget.style.background = "#ecfdf5")}
         >
-          Mark Delivered
+          Delivered
         </button>
       )}
-
       {currentStatus !== "CANCELLED" && (
         <button
           onClick={() => handleStatusChange("CANCELLED")}
           disabled={loading}
-          className="text-xs bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded transition-colors disabled:opacity-50"
+          style={{
+            background: "#fef2f2",
+            color: "#991b1b",
+            border: "1px solid #fecaca",
+            padding: "4px 10px",
+            borderRadius: 6,
+            fontFamily: "'DM Sans', sans-serif",
+            fontSize: 12,
+            fontWeight: 600,
+            cursor: loading ? "not-allowed" : "pointer",
+            opacity: loading ? 0.5 : 1,
+            transition: "background 0.15s",
+            whiteSpace: "nowrap",
+          }}
+          onMouseEnter={(e) => {
+            if (!loading) e.currentTarget.style.background = "#fee2e2";
+          }}
+          onMouseLeave={(e) => (e.currentTarget.style.background = "#fef2f2")}
         >
           Cancel
         </button>

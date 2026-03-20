@@ -15,7 +15,7 @@ const JWT_SECRET = new TextEncoder().encode(
  */
 export async function verifyAdmin() {
   try {
-    const cookieStore = cookies();
+    const cookieStore = await cookies();
     const token = cookieStore.get("admin-token");
     if (!token?.value) return false;
     await jwtVerify(token.value, JWT_SECRET);

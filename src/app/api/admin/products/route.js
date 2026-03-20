@@ -2,18 +2,17 @@ import { NextResponse } from "next/server";
 import connectDB from "@/lib/mongodb";
 import Product from "@/models/Product";
 import { verifyAdminToken, sendUnauthorized } from "@/lib/auth";
+import { verifyAdmin } from "@/lib/verifyAdmin";
 
 // GET - Fetch all products (admin only)
 export async function GET(request) {
   try {
-    // Verify admin authentication
-    const auth = await verifyAdminToken(request);
-    if (!auth.isValid) {
-      return sendUnauthorized(auth.error);
+    const isAdmin = await verifyAdmin();
+    if (!isAdmin) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     await connectDB();
-
     const products = await Product.find().sort({ createdAt: -1 }).lean();
 
     return NextResponse.json({
@@ -32,10 +31,9 @@ export async function GET(request) {
 // POST - Create new product (admin only)
 export async function POST(request) {
   try {
-    // Verify admin authentication
-    const auth = await verifyAdminToken(request);
-    if (!auth.isValid) {
-      return sendUnauthorized(auth.error);
+    const isAdmin = await verifyAdmin();
+    if (!isAdmin) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     await connectDB();
